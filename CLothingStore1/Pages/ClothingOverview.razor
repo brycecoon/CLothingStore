@@ -1,0 +1,94 @@
+﻿@page "/clothing/list/{currentPage:int?}"
+@inject IDbContextFactory<ClothingManagerDBContext> ContextFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>CLothing</PageTitle>
+
+<h1>Clothing</h1>
+
+@if (Clothings is null)
+{
+    <div>Loading...</div>
+}
+else
+{
+    <ul class="pagination mt-3">
+        <li class="page-item  @(CurrentPage == 1 ? "disabled" : "")">
+            <a class="page-link" href="/clothing/list/@(CurrentPage - 1)">Previous</a>
+        </li>
+        @for (int i = 1; i <= TotalPages; i++)
+        {
+            <li class="page-item @(CurrentPage == i ? "active" : "")">
+                <a class="page-link" href="/clothing/list/@i">@i</a>
+            </li>
+        }
+        <li class="page-item  @(CurrentPage == TotalPages ? "disabled" : "")">
+            <a class="page-link" href="/clothing/list/@(CurrentPage + 1)">Next</a>
+        </li>
+    </ul>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Size</th>
+                <th>IsTrending</th>
+                <th>Department</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var clothing in Clothings)
+            {
+                <tr>
+                    <td>@clothing.type</td>
+                    <td>@clothing.size</td>
+                    <td>@clothing.isTrending</td>
+                    <td>@clothing.Department?.name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+
+}
+
+@code {
+    [Parameter]
+    public int? CurrentPage { get; set; }
+
+    private Clothing[]? Clothings { get; set; }
+
+    private int TotalPages { get; set; }
+
+    private const int ItemsPerPage = 3;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (CurrentPage is null or < 1)
+        {
+            NavigationManager.NavigateTo("/clothing/list/1");
+            return;
+        }
+
+        using var context = ContextFactory.CreateDbContext();
+
+        var clothingCount = await context.Clothings.CountAsync();
+        TotalPages = clothingCount == 0
+            ? 1
+            :(int)Math.Ceiling((double)clothingCount / ItemsPerPage);
+
+        if(CurrentPage > TotalPages)
+        {
+            NavigationManager.NavigateTo($"/clothing/list/{TotalPages}");
+            return;
+        }
+
+        var itemsToSkip = (CurrentPage.Value - 1) * ItemsPerPage;
+
+        Clothings = await context.Clothings
+        .Include(emp => emp.Department)
+        .OrderBy(emp => emp.type)
+        .Skip(itemsToSkip)
+        .Take(ItemsPerPage)
+        .ToArrayAsync();
+    }
+}
