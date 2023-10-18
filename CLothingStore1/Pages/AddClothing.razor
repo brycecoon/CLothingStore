@@ -1,0 +1,105 @@
+﻿@page "/clothing/add"
+@inject IDbContextFactory<ClothingManagerDBContext> ContextFactory
+
+<PageTitle>Add Clothing</PageTitle>
+
+<h3>Add Clothing</h3>
+
+<ClothingForm CLothing="@CLothing"
+    Departments="@Departments"
+    IsBusy="@IsBusy"
+    OnSubmit="@HandleSubmit"/>
+
+@if (SuccessMessage is not null)
+{
+    <br />
+    <div class="alert alert-success">@SuccessMessage</div>
+}
+
+@if (ErrorMessage is not null)
+{
+    <br />
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+
+@code {
+    private Clothing? CLothing { get; set; }
+
+    private Department[]? Departments { get; set; }
+
+    private bool IsBusy { get; set; }
+
+    private string? SuccessMessage { get; set; }
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = ContextFactory.CreateDbContext();
+
+        Departments = await context.Departments
+        .OrderBy(dept => dept.name)
+        .ToArrayAsync();
+
+        CLothing = new()
+            {
+                DepartmentId = Departments.FirstOrDefault()?.Id
+            };
+    }
+
+    private async Task HandleSubmit(bool isValid)
+    {
+        if(isValid)
+        {
+            await HandleValidSubmit();
+
+        }
+        else
+        {
+            HandleInvalidSubmit();
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            if (CLothing is not null)
+            {
+                using var context = ContextFactory.CreateDbContext();
+
+                context.Clothings.Add(CLothing);
+                await context.SaveChangesAsync();
+
+                SuccessMessage = $"Clothing {CLothing.size} {CLothing.type} was added successfully";
+
+                //new employee
+                CLothing = new()
+                    {
+                        DepartmentId = CLothing.DepartmentId
+                    };
+            }
+        }
+        catch (Exception Ex)
+        {
+            SuccessMessage = null;
+            ErrorMessage = $"there was an error adding Clothing: {Ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        SuccessMessage = null;
+        ErrorMessage = null;
+    }
+}

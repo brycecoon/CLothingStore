@@ -1,6 +1,11 @@
 
 using CLothingStore1.Data;
+using CLothingStore1.Data.Models;
+using CLothingStore1.Shared;
+using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
+using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +15,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddDbContextFactory<ClothingManagerDBContext>(
     opt => opt.UseSqlServer(
         builder.Configuration.GetConnectionString("ClothingManagerDb")));
+builder.Services.AddScoped<StateContainer>();
 
 var app = builder.Build();
 
@@ -44,3 +50,4 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
+

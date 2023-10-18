@@ -1,6 +1,8 @@
 ﻿@page "/clothing/list/{currentPage:int?}"
 @inject IDbContextFactory<ClothingManagerDBContext> ContextFactory
 @inject NavigationManager NavigationManager
+@inject StateContainer StateContainer
+@inject IJSRuntime JS
 
 <PageTitle>CLothing</PageTitle>
 
@@ -33,6 +35,7 @@ else
                 <th>Size</th>
                 <th>IsTrending</th>
                 <th>Department</th>
+                <th>#</th>
             </tr>
         </thead>
         <tbody>
@@ -43,6 +46,16 @@ else
                     <td>@clothing.size</td>
                     <td>@clothing.isTrending</td>
                     <td>@clothing.Department?.name</td>
+                    <td class="btn-group-sm">
+                        <a href="/clothing/edit/@clothing.ID"
+                            class="btn btn-outline-primary">
+                            Edit
+                        </a>
+                        <button class="btn btn-outline-danger "
+                            @onclick="() => HandleDelete(clothing)">
+                            Delete
+                        </button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -63,6 +76,11 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
         if (CurrentPage is null or < 1)
         {
             NavigationManager.NavigateTo("/clothing/list/1");
@@ -82,6 +100,8 @@ else
             return;
         }
 
+        //StateContainer.ClothingOverviewPage = CurrentPage.Value;
+
         var itemsToSkip = (CurrentPage.Value - 1) * ItemsPerPage;
 
         Clothings = await context.Clothings
@@ -90,5 +110,27 @@ else
         .Skip(itemsToSkip)
         .Take(ItemsPerPage)
         .ToArrayAsync();
+    }
+
+    private async Task HandleDelete(Clothing clothing)
+    {
+        var isOK = await JS.InvokeAsync<bool>("confirm",
+        $"Delete Clothing {clothing.size} {clothing.type}?");
+
+        if (isOK)
+        {
+            try
+            {
+                using var context = ContextFactory.CreateDbContext();
+                context.Clothings.Remove(clothing);
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                //this means that the data has been modified, as we reload
+                //ignore this exception
+            }
+            await LoadData();
+        }
     }
 }

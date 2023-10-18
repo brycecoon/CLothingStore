@@ -1,0 +1,98 @@
+﻿@if (CLothing is not null)
+{
+    <EditForm Model="@CLothing" OnValidSubmit="@HandleValidSubmit"
+              OnInvalidSubmit="@HandleInvalidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="type" class="form-label">type</label>
+            <InputText id="type" class="form-control"
+            @bind-Value="CLothing.type" />
+        </div>
+
+        <div class="mb-3">
+            <label for="size" class="form-label">size</label>
+            <InputText id="size" class="form-control"
+            @bind-Value="CLothing.size" />
+        </div>
+
+
+
+        <div class="mb-3">
+            <label for="department" class="form-label">Department</label>
+            <InputSelect id="department" class="form-select"
+            @bind-Value="CLothing.DepartmentId">
+                @if (Departments is not null)
+                {
+                    @foreach (var department in Departments)
+                    {
+                        <option value="@department.Id">@department.name</option>
+                    }
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mb-3">
+            <label for="isTrending" class="form-label">IsTrending</label>
+            <InputCheckbox id="isTrending" class="form-check-input"
+            @bind-Value="CLothing.isTrending" />
+        </div>
+
+        @if (IsEdit)
+        {
+            <button type="submit" class="btn btn-primary" disabled="@IsBusy">Update</button>
+            <button type="button" class="btn btn-secondary" 
+                @onclick="HandleCancel" disabled="@IsBusy">Cancel</button>
+        }
+        else
+        {
+            <button type="submit" class="btn btn-primary" disabled="@IsBusy">Add</button>
+        }
+
+    </EditForm>
+
+}
+@code {
+    [Parameter]
+    public Clothing? CLothing { get; set; }
+
+    [Parameter]
+    public Department[]? Departments { get; set; }
+
+    [Parameter]
+    public bool IsBusy { get; set; }
+
+    [Parameter]
+    public bool IsEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel{ get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnSubmit { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        if (OnSubmit.HasDelegate)
+        {
+            await OnSubmit.InvokeAsync(true);
+        }
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        if (OnSubmit.HasDelegate)
+        {
+            await OnSubmit.InvokeAsync(false);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        if (OnCancel.HasDelegate)
+        {
+            await OnCancel.InvokeAsync();
+        }
+    }
+}

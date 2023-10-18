@@ -13,8 +13,11 @@ namespace CLothingStore1.Data.Models
         [StringLength(50)]
         public string? size { get; set; }
         public bool isTrending { get; set; }
-        public int? DepartmentId { get; set; }
         [Required]
+        public int? DepartmentId { get; set; }
         public Department? Department { get; set; }
+
+        [Timestamp]
+        public byte[]? TimeStamp {  get; set; }
     }
 }

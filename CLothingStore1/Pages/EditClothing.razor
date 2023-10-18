@@ -1,0 +1,101 @@
+﻿@page "/clothing/edit/{clothingId:int}"
+@inject IDbContextFactory<ClothingManagerDBContext> ContextFactory
+@inject NavigationManager NavigationManager
+@inject StateContainer StateContainer
+
+<PageTitle>EditClothing</PageTitle>
+
+<h3>Edit Clothing</h3>
+
+@if (CLothing is null && !IsBusy)
+{
+    <div class="alert alert-danger">Cloothing @ClothingId was not found.</div>
+}
+else
+{
+    <ClothingForm CLothing = "@CLothing"
+                  Departments = "@Departments"
+                  IsEdit = "true"
+                  IsBusy = "@IsBusy"
+                  OnSubmit = "@HandleSubmit" 
+                  OnCancel="NavigateToOverviewPage"/>
+}
+
+@if(ErrorMessage is not null)
+{
+    < br />
+    < div class= "alert alert-danger" > @ErrorMessage </ div >
+}
+
+
+@code {
+    [Parameter]
+    public int ClothingId { get; set; }
+
+    private Clothing? CLothing { get; set; }
+
+    private Department[]? Departments { get; set; }
+
+    private bool IsBusy { get; set; }
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        IsBusy = true;
+
+        try
+        {
+            using var context = ContextFactory.CreateDbContext();
+            Departments = await context.Departments
+            .AsNoTracking()
+            .OrderBy(typ => typ.name)
+            .ToArrayAsync();
+            CLothing = await context.Clothings
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(clo => clo.ID == ClothingId);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task HandleSubmit(bool isValid)
+    {
+        if (CLothing is null || IsBusy || !isValid)
+        {
+            ErrorMessage = null;
+            return;
+        }
+
+        IsBusy = true;
+
+        CLothing.Department = null;
+
+        try
+        {
+            using var context = ContextFactory.CreateDbContext();
+            context.Update(CLothing);
+            await context.SaveChangesAsync();
+
+            NavigateToOverviewPage();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            ErrorMessage = "Clothing has been modified since initial load. Please reload the page.";
+        }
+        catch (Exception ex)
+    {
+        ErrorMessage = $"Error while saving employee: {ex.Message}";
+    }
+    finally
+    {
+        IsBusy = false;
+    }
+}
+
+private void NavigateToOverviewPage()
+{
+    NavigationManager.NavigateTo($"clothing/list/{StateContainer.ClothingOverviewPage}");
+}
+}
